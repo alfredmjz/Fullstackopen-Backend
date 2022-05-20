@@ -5,6 +5,8 @@ const morgan = require("morgan");
 const cors = require("cors");
 const app = express();
 
+morgan.token("body", (req, res) => JSON.stringify(req.body));
+
 app.use(
 	express.static("build"),
 	express.json(),
@@ -105,8 +107,6 @@ app.post("/api/persons", (req, res) => {
 	};
 	people = people.concat(newPerson);
 	res.json(newPerson);
-
-	morgan.token("body", (req, res) => JSON.stringify(req.body));
 });
 
 app.get("/info", (req, res) => {
