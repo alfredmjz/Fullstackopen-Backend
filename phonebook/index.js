@@ -2,10 +2,13 @@
 
 const express = require("express");
 const morgan = require("morgan");
+const cors = require("cors");
 const app = express();
 
 app.use(
+	express.static("build"),
 	express.json(),
+	cors(),
 	morgan(":method :url :status :res[content-length] - :response-time ms :body")
 );
 
@@ -111,7 +114,7 @@ app.get("/info", (req, res) => {
 	const message = `Phonebook has info for ${people.length} people` + "<br/>" + date;
 	res.send(message);
 });
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
 	console.log(`Server running on port ${PORT}`);
 });
