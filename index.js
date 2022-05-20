@@ -106,7 +106,7 @@ app.post("/api/persons", (req, res) => {
 	people = people.concat(newPerson);
 	res.json(newPerson);
 
-	morgan.token("body", (req) => JSON.stringify(req.body));
+	morgan.token("body", (req, res) => JSON.stringify(req.body));
 });
 
 app.get("/info", (req, res) => {
