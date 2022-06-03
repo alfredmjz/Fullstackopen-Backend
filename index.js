@@ -1,8 +1,9 @@
 /** @format */
-
+require("dotenv").config();
 const express = require("express");
 const morgan = require("morgan");
 const cors = require("cors");
+const People = require("./people.js");
 const app = express();
 
 morgan.token("body", (req, res) => JSON.stringify(req.body));
@@ -14,71 +15,52 @@ app.use(
 	morgan(":method :url :status :res[content-length] - :response-time ms :body")
 );
 
-let people = [
-	{
-		id: 1,
-		name: "Arto Hellas",
-		number: "040-123456",
-	},
-	{
-		id: 2,
-		name: "Ada Lovelace",
-		number: "39-44-5323523",
-	},
-	{
-		id: 3,
-		name: "Dan Abramov",
-		number: "12-43-234345",
-	},
-	{
-		id: 4,
-		name: "Mary Poppendieck",
-		number: "39-23-6423122",
-	},
-];
+// const generateID = () => {
+// 	if (People.length === 10000) {
+// 		console.log("Maximum ID reached");
+// 		return;
+// 	}
 
-const generateID = () => {
-	if (people.length === 10000) {
-		console.log("Maximum ID reached");
-		return;
-	}
+// 	let newID = 0;
+// 	while (findID(newID)) {
+// 		newID = Math.floor(Math.random() * (10000 - 2) + 1);
+// 	}
 
-	let newID = 0;
-	while (findID(newID)) {
-		newID = Math.floor(Math.random() * (10000 - 2) + 1);
-	}
-
-	return newID;
-};
-
-const findID = (id) => {
-	return people.find((person) => person.id === id);
-};
-
-const findName = (name) => {
-	return people.find((person) => person.name === name);
-};
+// 	return newID;
+// };
 
 app.get("/api/persons", (req, res) => {
-	res.json(people);
+	People.find({}).then((person) => {
+		res.json(person);
+	});
 });
 
 app.get("/api/persons/:id", (req, res) => {
 	const id = Number(req.params.id);
-	const exist = findID(id);
+	const exist = People.findById(id);
 	if (!exist) res.status(404).end(`ID ${id} does not exist`);
-	res.json(exist);
+	exist.then((person) => {
+		res.json(person);
+	});
 });
 
+//Error - ID data type is wrong
 app.delete("/api/persons/:id", (req, res) => {
-	const id = Number(req.params.id);
-	const exist = findID(id);
-	if (!exist) res.status(404).end(`ID ${id} does not exist`);
-	people = people.filter((person) => person.id !== id);
-	res.status(204).send("successfully deleted");
+	const id = req.params.id;
+	const exist = People.findById(id);
+	exist.then((person) => {
+		if (!exist) res.status(404).end(`ID ${id} does not exist`);
+
+		People.deleteOne(person).then((result) => {
+			if (result.ok === 1) {
+				res.status(204).send("successfully deleted");
+			}
+		});
+	});
 });
 
 app.post("/api/persons", (req, res) => {
+	const id = req.body.id;
 	const name = req.body.name;
 	const number = req.body.number;
 	if (!name) {
@@ -97,22 +79,30 @@ app.post("/api/persons", (req, res) => {
 		});
 	}
 
-	const exist = findName(name);
-	if (exist) return res.status(400).json({ error: "name must be unique" });
+	People.findOne({ name: name }).then((result) => {
+		if (result) {
+			return res.status(400).json({ error: "name must be unique" });
+		} else {
+			const newPerson = new People({
+				id: id,
+				name: name,
+				number: number,
+			});
 
-	const newPerson = {
-		id: generateID(),
-		name: name,
-		number: number,
-	};
-	people = people.concat(newPerson);
-	res.json(newPerson);
+			newPerson.save().then((saved) => {
+				res.json(saved);
+			});
+		}
+	});
 });
 
 app.get("/info", (req, res) => {
 	const date = new Date();
-	const message = `Phonebook has info for ${people.length} people` + "<br/>" + date;
-	res.send(message);
+	const data = People.find({});
+	data.then((person) => {
+		const message = `Phonebook has info for ${person.length} people` + "<br/>" + date;
+		res.send(message);
+	});
 });
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
