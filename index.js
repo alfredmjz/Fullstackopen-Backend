@@ -14,10 +14,8 @@ app.use(
 	express.static("build"),
 	express.json(),
 	cors(),
-	errorHandler,
 	morgan(":method :url :status :res[content-length] - :response-time ms :body")
 );
-
 // const generateID = () => {
 // 	if (People.length === 10000) {
 // 		console.log("Maximum ID reached");
@@ -50,7 +48,6 @@ app.get("/api/persons/:id", (req, res, next) => {
 		.catch((err) => next(err));
 });
 
-//Error - ID data type is wrong
 app.delete("/api/persons/:id", (req, res, next) => {
 	const id = req.params.id;
 	People.findByIdAndDelete(id)
@@ -62,7 +59,6 @@ app.delete("/api/persons/:id", (req, res, next) => {
 });
 
 app.post("/api/persons", (req, res, next) => {
-	const id = req.body.id;
 	const name = req.body.name;
 	const number = req.body.number;
 	if (!name) {
@@ -81,23 +77,25 @@ app.post("/api/persons", (req, res, next) => {
 		});
 	}
 
-	People.findOne({ name: name })
-		.then((result) => {
-			if (result) {
-				return res.status(400).json({ error: "name must be unique" });
-			} else {
-				const newPerson = new People({
-					id: id,
-					name: name,
-					number: number,
-				});
+	People.findOne({ name: name }).then((result) => {
+		if (result) {
+			return res.status(400).json({ error: "name must be unique" });
+		} else {
+			const newPerson = new People({
+				name: name,
+				number: number,
+			});
 
-				newPerson.save().then((saved) => {
+			newPerson
+				.save()
+				.then((saved) => {
 					res.json(saved);
+				})
+				.catch((err) => {
+					next(err);
 				});
-			}
-		})
-		.catch((err) => next(err));
+		}
+	});
 });
 
 app.get("/info", (req, res, next) => {
@@ -113,12 +111,18 @@ app.get("/info", (req, res, next) => {
 app.put("/api/persons/:id", (req, res, next) => {
 	const targetName = req.body.name;
 	const newNumber = req.body.number;
-	People.findOneAndUpdate({ name: targetName }, { number: newNumber }, { new: true })
+	People.findOneAndUpdate(
+		{ name: targetName },
+		{ number: newNumber },
+		{ new: true, runValidators: true, context: "query" }
+	)
 		.then((update) => {
 			res.json(update);
 		})
 		.catch((err) => next(err));
 });
+
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {

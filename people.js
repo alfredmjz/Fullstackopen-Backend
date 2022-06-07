@@ -16,8 +16,38 @@ mongoose
 	});
 
 const phonebookSchema = new mongoose.Schema({
-	name: String,
-	number: String,
+	name: {
+		type: String,
+		minLength: 3,
+		required: [true, "A name is required"],
+	},
+	number: {
+		type: String,
+		validate: {
+			validator: function (str) {
+				let count = {
+					l: 0,
+					current: 0,
+					dash: 0,
+				};
+
+				for (let s of str) {
+					if (s === "-") {
+						count.l = count.current;
+						count.dash += 1;
+						continue;
+					}
+					if (count.dash > 1) {
+						return false;
+					}
+					count.current += 1;
+				}
+				return count.l <= 3 && count.current >= 8;
+			},
+			message: "Number is an invalid phone number",
+		},
+		required: [true, "A number is required"],
+	},
 });
 
 phonebookSchema.set("toJSON", {
