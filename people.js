@@ -42,7 +42,7 @@ const phonebookSchema = new mongoose.Schema({
 					}
 					count.current += 1;
 				}
-				return count.l <= 3 && count.current >= 8;
+				return count.dash === 1 && count.l <= 3 && count.current >= 8;
 			},
 			message: "Number is an invalid phone number",
 		},
