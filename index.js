@@ -1,9 +1,11 @@
 /** @format */
 require("dotenv").config();
 const express = require("express");
-const morgan = require("morgan");
 const cors = require("cors");
+const { errorHandler } = require("./middlewares/error.js");
+const morgan = require("morgan");
 const People = require("./people.js");
+
 const app = express();
 
 morgan.token("body", (req, res) => JSON.stringify(req.body));
@@ -12,6 +14,7 @@ app.use(
 	express.static("build"),
 	express.json(),
 	cors(),
+	errorHandler,
 	morgan(":method :url :status :res[content-length] - :response-time ms :body")
 );
 
@@ -29,37 +32,36 @@ app.use(
 // 	return newID;
 // };
 
-app.get("/api/persons", (req, res) => {
-	People.find({}).then((person) => {
-		res.json(person);
-	});
+app.get("/api/persons", (req, res, next) => {
+	People.find({})
+		.then((person) => {
+			res.json(person);
+		})
+		.catch((err) => next(err));
 });
 
-app.get("/api/persons/:id", (req, res) => {
-	const id = Number(req.params.id);
-	const exist = People.findById(id);
-	if (!exist) res.status(404).end(`ID ${id} does not exist`);
-	exist.then((person) => {
-		res.json(person);
-	});
+app.get("/api/persons/:id", (req, res, next) => {
+	const id = req.params.id;
+	People.findById(id)
+		.then((person) => {
+			if (!person) res.status(404).end(`ID ${id} does not exist`);
+			else res.json(person);
+		})
+		.catch((err) => next(err));
 });
 
 //Error - ID data type is wrong
-app.delete("/api/persons/:id", (req, res) => {
+app.delete("/api/persons/:id", (req, res, next) => {
 	const id = req.params.id;
-	const exist = People.findById(id);
-	exist.then((person) => {
-		if (!exist) res.status(404).end(`ID ${id} does not exist`);
-
-		People.deleteOne(person).then((result) => {
-			if (result.ok === 1) {
-				res.status(204).send("successfully deleted");
-			}
-		});
-	});
+	People.findByIdAndDelete(id)
+		.then((result) => {
+			if (!result) res.status(404).end(`ID ${id} does not exist`);
+			else res.status(204).send("successfully deleted");
+		})
+		.catch((err) => next(err));
 });
 
-app.post("/api/persons", (req, res) => {
+app.post("/api/persons", (req, res, next) => {
 	const id = req.body.id;
 	const name = req.body.name;
 	const number = req.body.number;
@@ -79,31 +81,45 @@ app.post("/api/persons", (req, res) => {
 		});
 	}
 
-	People.findOne({ name: name }).then((result) => {
-		if (result) {
-			return res.status(400).json({ error: "name must be unique" });
-		} else {
-			const newPerson = new People({
-				id: id,
-				name: name,
-				number: number,
-			});
+	People.findOne({ name: name })
+		.then((result) => {
+			if (result) {
+				return res.status(400).json({ error: "name must be unique" });
+			} else {
+				const newPerson = new People({
+					id: id,
+					name: name,
+					number: number,
+				});
 
-			newPerson.save().then((saved) => {
-				res.json(saved);
-			});
-		}
-	});
+				newPerson.save().then((saved) => {
+					res.json(saved);
+				});
+			}
+		})
+		.catch((err) => next(err));
 });
 
-app.get("/info", (req, res) => {
+app.get("/info", (req, res, next) => {
 	const date = new Date();
-	const data = People.find({});
-	data.then((person) => {
-		const message = `Phonebook has info for ${person.length} people` + "<br/>" + date;
-		res.send(message);
-	});
+	People.find({})
+		.then((person) => {
+			const message = `Phonebook has info for ${person.length} people` + "<br/>" + date;
+			res.send(message);
+		})
+		.catch((err) => next(err));
 });
+
+app.put("/api/persons/:id", (req, res, next) => {
+	const targetName = req.body.name;
+	const newNumber = req.body.number;
+	People.findOneAndUpdate({ name: targetName }, { number: newNumber }, { new: true })
+		.then((update) => {
+			res.json(update);
+		})
+		.catch((err) => next(err));
+});
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
 	console.log(`Server running on port ${PORT}`);
