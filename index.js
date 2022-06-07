@@ -8,7 +8,7 @@ const People = require("./people.js");
 
 const app = express();
 
-morgan.token("body", (req, res) => JSON.stringify(req.body));
+morgan.token("body", (req) => JSON.stringify(req.body));
 
 app.use(
 	express.static("build"),

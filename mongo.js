@@ -3,9 +3,7 @@
 const mongoose = require("mongoose");
 
 if (process.argv.length < 3) {
-	console.log(
-		"Incorrect arguments: node mongo.js <password> [Optional]:<Entry Name> <Entry Number>"
-	);
+	console.log("Incorrect arguments: node mongo.js <password> [Optional]:<Entry Name> <Entry Number>");
 	process.exit(1);
 }
 
@@ -17,10 +15,10 @@ const phonebookSchema = {
 };
 const Entry = mongoose.model("Entry", phonebookSchema);
 
-if (process.argv.length == 3) {
+if (process.argv.length === 3) {
 	mongoose
 		.connect(url)
-		.then((result) => {
+		.then(() => {
 			Entry.find({}).then((result) => {
 				console.log("phonebook:");
 				result.forEach((entry) => {
@@ -30,10 +28,10 @@ if (process.argv.length == 3) {
 			});
 		})
 		.catch((err) => console.log(err));
-} else if (process.argv.length == 5) {
+} else if (process.argv.length === 5) {
 	mongoose
 		.connect(url)
-		.then((result) => {
+		.then(() => {
 			console.log("connected");
 
 			const newNumber = new Entry({
